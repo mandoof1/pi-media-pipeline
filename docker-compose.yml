@@ -1,0 +1,112 @@
+# Pi Media Pipeline — Docker Compose
+# All services on a shared 'media' network for internal DNS (radarr, sonarr, etc.)
+#
+# Fill in the env vars (or use a .env file — NEVER commit real values):
+#   PUID, PGID           = user/group IDs (default 1000)
+#   TZ                   = your timezone
+#   JELLYFIN_ADMIN_PASS  = Jellyfin admin password (only used during first-run wizard)
+#   RADARR_API_KEY       = Radarr API key (Settings > General)
+#   SONARR_API_KEY       = Sonarr API key (Settings > General)
+#   PROWLARR_API_KEY     = Prowlarr API key (Settings > General)
+#   TRANSMISSION_USER/PASS = Transmission web UI auth
+#
+# Media layout on the host (adjust the mount source to your disk):
+#   /mnt/media/
+#     movies/        -> Jellyfin Movies library
+#     tv/            -> Jellyfin TV library
+#     downloads/
+#       complete/    -> Transmission downloads (sequential, streamable mid-download)
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:10.10.3
+    container_name: jellyfin
+    restart: unless-stopped
+    network_mode: media
+    ports:
+      - "8096:8096"
+    volumes:
+      - /mnt/media/jellyfin/config:/config
+      - /mnt/media/jellyfin/cache:/cache
+      - /mnt/media:/media:ro
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    restart: unless-stopped
+    network_mode: media
+    ports:
+      - "5055:5055"
+    volumes:
+      - /mnt/media/jellyseerr:/app/config
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    network_mode: media
+    ports:
+      - "7878:7878"
+    volumes:
+      - /mnt/media/radarr:/config
+      - /mnt/media:/media
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    network_mode: media
+    ports:
+      - "8989:8989"
+    volumes:
+      - /mnt/media/sonarr:/config
+      - /mnt/media:/media
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+
+  transmission:
+    image: linuxserver/transmission:latest
+    container_name: transmission
+    restart: unless-stopped
+    network_mode: media
+    ports:
+      - "9091:9091"
+      - "51413:51413"
+      - "51413:51413/udp"
+    volumes:
+      - /mnt/media/transmission:/config
+      - /mnt/media/downloads:/downloads
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+      - USER=${TRANSMISSION_USER:-pihole}
+      - PASS=${TRANSMISSION_PASS:-change-me}
+
+  prowlarr:
+    image: linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    network_mode: media
+    ports:
+      - "9696:9696"
+    volumes:
+      - /mnt/media/prowlarr:/config
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}

@@ -39,14 +39,14 @@ User ──► Jellyseerr (5055) ──► Radarr (7878) ──► Prowlarr (969
 - **Image:** `jellyfin/jellyfin:10.10.3` (NOT 10.11.11 — auth is broken in that version)
 - **Volume mounts:** `/mnt/media/jellyfin/config`, `/mnt/media/jellyfin/cache`, `/mnt/media` (read-only)
 - **Libraries:** Movies (`/media/movies`), TV (`/media/tv`)
-- **Admin user:** `pihole` (password set via wizard)
+- **Admin user:** `<user>` (password set via wizard)
 - **Network fix:** `PublishedServerUriBySubnet` set to LAN broadcast range
 
 ### Jellyseerr (5055)
 - **Image:** `fallenbagel/jellyseerr:latest`
 - **Volume:** `/mnt/media/jellyseerr` → `/app/config`
 - **Auth:** Local-only (`mediaServerLogin: false`, `localLogin: true`)
-- **Login:** `pihole@local` / meow
+- **Login:** `admin@local` / `<password>`
 - **Connected to:** Radarr + Sonarr
 
 ### Radarr (7878)
@@ -63,7 +63,7 @@ User ──► Jellyseerr (5055) ──► Radarr (7878) ──► Prowlarr (969
 
 ### Transmission (9091)
 - **Image:** `linuxserver/transmission:latest`
-- **Auth:** pihole / meow
+- **Auth:** <user> / <password>
 - **Sequential download:** ON (enables streaming partial files)
 - **rename-partial-files:** OFF (files keep `.mkv`/`.mp4` while downloading)
 - **Paths:** `/downloads/complete` (no separate incomplete dir)
@@ -94,6 +94,22 @@ User ──► Jellyseerr (5055) ──► Radarr (7878) ──► Prowlarr (969
 Transmission is configured for **sequential download** — pieces download from start to finish rather than randomly scattered. Combined with `rename-partial-files: false`, the file keeps its original extension (`.mkv`/`.mp4`) from the moment Transmission starts writing.
 
 **Result:** Jellyfin sees the file immediately and can begin serving the first chunk within seconds. Normal sequential playback works. Seeking to un-downloaded parts waits for the data.
+
+---
+
+## Custom Scripts
+
+This repo contains the actual scripts used to build/fix this stack (sanitized — all credentials come from env vars):
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/jellyfin-bootstrap-user.py` | Creates/updates Jellyfin admin user + permissions directly in SQLite (PBKDF2-SHA512 hex format for 10.10.x) |
+| `scripts/jellyfin-fix-network.py` | Sets `PublishedServerUriBySubnet` so LAN clients can connect |
+| `scripts/jellyfin-add-libraries.py` | Adds Movies/TV libraries via API (query-param POST required on 10.10.x) |
+| `scripts/jellyseerr-fix-password.py` | Fixes Jellyseerr admin password hash in SQLite (bcrypt via container Node) |
+| `scripts/transmission-streaming-tweaks.py` | Enables sequential download + disables incomplete dir for mid-download streaming |
+
+Run any with `python3 <script>.py` and the env vars documented in each file's docstring.
 
 ---
 
@@ -167,7 +183,7 @@ sudo docker logs jellyseerr --tail 50
 curl -s http://localhost:7878/api/v3/movie?apiKey=<KEY> | python3 -m json.tool
 
 # Transmission status
-curl -s -u 'pihole:meow' http://localhost:9091/transmission/rpc \
+curl -s -u '<user>:<password>' http://localhost:9091/transmission/rpc \
   -H 'X-Transmission-Session-Id: <SID>' \
   -d '{"method":"torrent-get","arguments":{"fields":["name","percentDone","status","downloadDir"]}}'
 ```
@@ -178,9 +194,9 @@ curl -s -u 'pihole:meow' http://localhost:9091/transmission/rpc \
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Jellyfin | `http://<server-ip>:8096` | pihole / meow |
-| Jellyseerr | `http://<server-ip>:5055` | pihole@local / meow |
+| Jellyfin | `http://<server-ip>:8096` | <user> / <password> |
+| Jellyseerr | `http://<server-ip>:5055` | admin@local / <password> |
 | Radarr | `http://<server-ip>:7878` | API key |
 | Sonarr | `http://<server-ip>:8989` | API key |
-| Transmission | `http://<server-ip>:9091` | pihole / meow |
+| Transmission | `http://<server-ip>:9091` | <user> / <password> |
 | Prowlarr | `http://<server-ip>:9696` | API key |
