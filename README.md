@@ -14,8 +14,8 @@ End-to-end: request a movie/series in Jellyseerr → Radarr/Sonarr grabs release
 | OS | Debian aarch64 |
 | Storage | External HDD, NTFS, 465GB |
 | Mount | `/mnt/media` (`/dev/sda1` UUID=AE8E1A3B8E19FD11) |
-| Network | Static: 192.168.8.58 / Pi-hole DHCP + DNS (Cloudflare upstream) |
-| Location | UAE — no VPN needed for torrenting |
+| Network | Pi-hole DHCP + DNS (Cloudflare upstream) |
+| Location | N/A (no VPN needed for torrenting) |
 
 ---
 
@@ -40,7 +40,7 @@ User ──► Jellyseerr (5055) ──► Radarr (7878) ──► Prowlarr (969
 - **Volume mounts:** `/mnt/media/jellyfin/config`, `/mnt/media/jellyfin/cache`, `/mnt/media` (read-only)
 - **Libraries:** Movies (`/media/movies`), TV (`/media/tv`)
 - **Admin user:** `pihole` (password set via wizard)
-- **Network fix:** `PublishedServerUriBySubnet` set to `192.168.8.0/24=http://192.168.8.58:8096`
+- **Network fix:** `PublishedServerUriBySubnet` set to LAN broadcast range
 
 ### Jellyseerr (5055)
 - **Image:** `fallenbagel/jellyseerr:latest`
@@ -71,7 +71,7 @@ User ──► Jellyseerr (5055) ──► Radarr (7878) ──► Prowlarr (969
 
 ### Prowlarr (9696)
 - **Image:** `linuxserver/prowlarr:latest`
-- **Indexers:** 4 direct Torznab (no FlareSolverr needed — UAE has minimal Cloudflare blocking)
+- **Indexers:** 4 direct Torznab (no FlareSolverr needed — minimal Cloudflare blocking where deployed)
 - **Sync:** Pushes to Radarr + Sonarr
 
 ---
@@ -178,9 +178,9 @@ curl -s -u 'pihole:meow' http://localhost:9091/transmission/rpc \
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Jellyfin | http://192.168.8.58:8096 | pihole / meow |
-| Jellyseerr | http://192.168.8.58:5055 | pihole@local / meow |
-| Radarr | http://192.168.8.58:7878 | API key |
-| Sonarr | http://192.168.8.58:8989 | API key |
-| Transmission | http://192.168.8.58:9091 | pihole / meow |
-| Prowlarr | http://192.168.8.58:9696 | API key |
+| Jellyfin | `http://<server-ip>:8096` | pihole / meow |
+| Jellyseerr | `http://<server-ip>:5055` | pihole@local / meow |
+| Radarr | `http://<server-ip>:7878` | API key |
+| Sonarr | `http://<server-ip>:8989` | API key |
+| Transmission | `http://<server-ip>:9091` | pihole / meow |
+| Prowlarr | `http://<server-ip>:9696` | API key |
